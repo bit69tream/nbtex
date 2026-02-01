@@ -146,7 +146,21 @@ inline (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8,
   return next_data, ret, true;
 }
 
-Tag_Parser :: #type (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool);
+Tag_Parser_Proc :: #type (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool);
+Tag_Parser :: struct {
+  type: Tag_Type;
+  proc: Tag_Parser_Proc;
+}
+parsers :: Tag_Parser.[
+  .{.Byte,   parse_tag_byte},
+  .{.Short,  parse_tag_short},
+  .{.Int,    parse_tag_int},
+  .{.Long,   parse_tag_long},
+  .{.Float,  parse_tag_float},
+  .{.Double, parse_tag_double},
+  .{.String, parse_tag_string},
+  .{.List,   parse_tag_list},
+];
 
 parse_tag_byte :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
   next_data, value, success := parse__primitive_tag(data, is_named, .Byte);
@@ -201,19 +215,57 @@ parse_tag_string :: (data: []u8, is_named: bool = true) -> (next_data: []u8, val
   return new_data, ret, true;
 }
 
-parse_tag :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  parsers := Tag_Parser.[
-    parse_tag_byte,
-    parse_tag_short,
-    parse_tag_int,
-    parse_tag_long,
-    parse_tag_float,
-    parse_tag_double,
-    parse_tag_string,
-  ];
+parse_tag_list :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  name: string = ---;
+  next_data := data;
+
+  if is_named {
+    data1, tag_name, success := parse_tag_header(data, .List, is_named);
+    if !success then return .{}, .{}, false;
+
+    name = tag_name;
+    next_data = data1;
+  }
+
+  tag_id := cast(*u8,next_data.data).*;
+  count  := byte_swap_if_necessary(cast(*u32, next_data.data+1).*);
+  next_data.data  += size_of(u32)+size_of(u8);
+  next_data.count -= size_of(u32)+size_of(u8);
+  tag_type: Tag_Type = xx tag_id;
+
+  proc: Tag_Parser_Proc;
 
   for parsers {
-    next_data, value, success := it(data, is_named);
+    if tag_type == it.type {
+      proc = it.proc;
+      break;
+    }
+  }
+
+  payload: [..]Tag;
+  array_reserve(*payload, xx count);
+
+  for 0..count-1 {
+    new_data, value, success := proc(next_data, false);
+    if !success then return .{}, .{}, false;
+
+    next_data = new_data;
+    array_add(*payload, value);
+  }
+
+  ret: Tag = ---;
+  ret.name = name;
+  ret.payload = .{
+    type = .List,
+    as_list = payload,
+  };
+
+  return next_data, ret, true;
+}
+
+parse_tag :: (data: []u8) -> (next_data: []u8, value: Tag, success: bool) {
+  for parsers {
+    next_data, value, success := it.proc(data);
     if success then return next_data, value, true;
   }
 
@@ -226,12 +278,9 @@ main :: () {
   data, success := read_nbt_file(path);
   if !success then exit(1);
 
-  print("%\n", data);
-
-  //                    a     m     g     u     s           s     u     s
-  mogus := u8.[8, 0, 5, 0x61, 0x6d, 0x67, 0x75, 0x73, 0, 3, 0x73, 0x75, 0x73];
+  mogus := u8.[0x09, 0x00, 0x06, 0x61, 0x6D, 0x6F, 0x67, 0x75, 0x73, 0x01, 0x00, 0x00, 0x00, 0x04, 0x45, 0x43, 0x15, 0xBD];
   _, byte, _ := parse_tag(mogus);
-  print("% %\n", byte.name, byte.payload.as_string);
+  print("% %\n", byte.name, byte.payload.as_list);
 }
 
 #import "Basic";
