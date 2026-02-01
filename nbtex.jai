@@ -47,7 +47,7 @@ Tag_Type :: enum u8 {
 }
 
 Tag_Value :: union type: Tag_Type {
-  .Byte       ,, as_byte:       u8;
+  .Byte       ,, as_byte:       s8;
   .Short      ,, as_short:      s16;
   .Int        ,, as_int:        s32;
   .Long       ,, as_long:       s64;
@@ -61,7 +61,7 @@ Tag_Value :: union type: Tag_Type {
 
 Tag :: struct {
   name: string;
-  payload: Tag_Value;
+  using payload: Tag_Value;
 }
 
 big_endian :: () -> bool {
