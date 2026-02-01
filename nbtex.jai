@@ -137,6 +137,8 @@ parse__primitive_tag :: (data: []u8, is_named: bool = true, $type: Tag_Type) -> 
   return next_data, ret, true;
 }
 
+Tag_Parser :: #type (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool);
+
 parse_tag_byte :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
   next_data, value, success := parse__primitive_tag(data, is_named, .Byte);
   return next_data, value, success;
@@ -145,6 +147,44 @@ parse_tag_byte :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value
 parse_tag_short :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
   next_data, value, success := parse__primitive_tag(data, is_named, .Short);
   return next_data, value, success;
+}
+
+parse_tag_int :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, value, success := parse__primitive_tag(data, is_named, .Int);
+  return next_data, value, success;
+}
+
+parse_tag_long :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, value, success := parse__primitive_tag(data, is_named, .Long);
+  return next_data, value, success;
+}
+
+parse_tag_float :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, value, success := parse__primitive_tag(data, is_named, .Float);
+  return next_data, value, success;
+}
+
+parse_tag_double :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, value, success := parse__primitive_tag(data, is_named, .Double);
+  return next_data, value, success;
+}
+
+parse_tag :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  parsers := Tag_Parser.[
+    parse_tag_byte,
+    parse_tag_short,
+    parse_tag_int,
+    parse_tag_long,
+    parse_tag_float,
+    parse_tag_double,
+  ];
+
+  for parsers {
+    next_data, value, success := it(data, is_named);
+    if success then return next_data, value, true;
+  }
+
+  return .{}, .{}, false;
 }
 
 main :: () {
@@ -156,7 +196,7 @@ main :: () {
   print("%\n", data);
 
   mogus := u8.[2, 0, 5, 70, 111, 114, 103, 101, 0, 69];
-  _, byte, _ := parse_tag_short(mogus);
+  _, byte, _ := parse_tag(mogus);
   print("% %\n", byte, byte.payload.as_short);
 }
 
