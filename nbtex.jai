@@ -111,9 +111,18 @@ parse_tag_header :: (data: []u8, type: Tag_Type, is_named: bool = true) -> (next
   return next_data, ret_name, true;
 }
 
-parse__primitive_tag :: (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8, value: Tag, success: bool) {
-  next_data, name, success := parse_tag_header(data, type, is_named);
-  if !success then return .{}, .{}, false;
+parse__primitive_tag ::
+inline (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8, value: Tag, success: bool) {
+  name: string = ---;
+  next_data := data;
+
+  if is_named {
+    data1, tag_name, success := parse_tag_header(data, type, is_named);
+    if !success then return .{}, .{}, false;
+
+    name = tag_name;
+    next_data = data1;
+  }
 
   #insert -> string {
     String :: #import "String";
@@ -169,9 +178,17 @@ parse_tag_double :: (data: []u8, is_named: bool = true) -> (next_data: []u8, val
   return next_data, value, success;
 }
 
-parse_tag_string ::  (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  next_data, name, success := parse_tag_header(data, .String, is_named);
-  if !success then return .{}, .{}, false;
+parse_tag_string :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  name: string = ---;
+  next_data := data;
+
+  if is_named {
+    data1, tag_name, success := parse_tag_header(data, .String, is_named);
+    if !success then return .{}, .{}, false;
+
+    name = tag_name;
+    next_data = data1;
+  }
 
   new_data, payload, succ := parse_string(next_data);
   if !succ then return .{}, .{}, false;
