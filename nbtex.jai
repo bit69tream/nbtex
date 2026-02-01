@@ -47,8 +47,7 @@ Tag_Type :: enum u8 {
 }
 
 Tag_Value :: union type: Tag_Type {
-  .End        ,, _: void;
-  .Byte       ,, as_byte:       s8;
+  .Byte       ,, as_byte:       u8;
   .Short      ,, as_short:      s16;
   .Int        ,, as_int:        s32;
   .Long       ,, as_long:       s64;
@@ -61,9 +60,70 @@ Tag_Value :: union type: Tag_Type {
 }
 
 Tag :: struct {
-  type: Tag_Type;
   name: string;
   payload: Tag_Value;
+}
+
+big_endian :: () -> bool {
+  x : s16 = 1;
+
+  b : *u8 = cast(*u8) *x;
+
+  if b[0] return false;
+  return true;
+}
+
+byte_swap_if_necessary :: (input: $T) -> T {
+  if !big_endian() then return byte_swap(input);
+  return input;
+}
+
+parse_string :: (data: []u8) -> (next_data: []u8, value: string, success: bool) {
+  length: u16 = byte_swap_if_necessary((cast(*u16)data.data).*);
+
+  value: string = ---;
+  value.data = data.data + size_of(u16);
+  value.count = length;
+
+  next_data: []u8 = ---;
+  next_data.data  = data.data + size_of(u16) + length;
+  next_data.count = data.count - size_of(u16) - length;
+
+  return next_data, value, true;
+}
+
+parse_tag_header :: (data: []u8, type: Tag_Type, is_named: bool = true) -> (next_data: []u8, name: string, success: bool) {
+  if data[0] != xx type then return .{}, .{}, false;
+
+  next_data := data;
+  next_data.data += 1;
+  next_data.count -= 1;
+
+  ret_name := "";
+  if is_named {
+    data2, name, success := parse_string(next_data);
+    if !success then return .{}, .{}, false;
+
+    next_data = data2;
+    ret_name = name;
+  }
+
+  return next_data, ret_name, true;
+}
+
+parse_tag_byte :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, name, success := parse_tag_header(data, .Byte, is_named);
+
+  payload: Tag_Value;
+  payload.type = .Byte;
+  payload.as_byte = next_data[0];
+
+  ret := Tag.{name, payload};
+
+  next_data.data += 1;
+  next_data.count -= 1;
+
+  return next_data, ret, true;
 }
 
 main :: () {
@@ -73,8 +133,13 @@ main :: () {
   if !success then exit(1);
 
   print("%\n", data);
+
+  mogus := u8.[1, 0, 5, 70, 111, 114, 103, 101, 69];
+  _, byte, _ := parse_tag_byte(mogus);
+  print("%\n", byte);
 }
 
 #import "Basic";
+#import "Bit_Operations";
 
 #load "file.jai";
