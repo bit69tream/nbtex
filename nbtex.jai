@@ -169,6 +169,21 @@ parse_tag_double :: (data: []u8, is_named: bool = true) -> (next_data: []u8, val
   return next_data, value, success;
 }
 
+parse_tag_string ::  (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, name, success := parse_tag_header(data, .String, is_named);
+  if !success then return .{}, .{}, false;
+
+  new_data, payload, succ := parse_string(next_data);
+  if !succ then return .{}, .{}, false;
+
+  ret: Tag = ---;
+  ret.name = name;
+  ret.payload.type = .String;
+  ret.payload.as_string = payload;
+
+  return new_data, ret, true;
+}
+
 parse_tag :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
   parsers := Tag_Parser.[
     parse_tag_byte,
@@ -177,6 +192,7 @@ parse_tag :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag
     parse_tag_long,
     parse_tag_float,
     parse_tag_double,
+    parse_tag_string,
   ];
 
   for parsers {
@@ -195,9 +211,10 @@ main :: () {
 
   print("%\n", data);
 
-  mogus := u8.[2, 0, 5, 70, 111, 114, 103, 101, 0, 69];
+  //                    a     m     g     u     s           s     u     s
+  mogus := u8.[8, 0, 5, 0x61, 0x6d, 0x67, 0x75, 0x73, 0, 3, 0x73, 0x75, 0x73];
   _, byte, _ := parse_tag(mogus);
-  print("% %\n", byte, byte.payload.as_short);
+  print("% %\n", byte.name, byte.payload.as_string);
 }
 
 #import "Basic";
