@@ -111,19 +111,40 @@ parse_tag_header :: (data: []u8, type: Tag_Type, is_named: bool = true) -> (next
   return next_data, ret_name, true;
 }
 
-parse_tag_byte :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  next_data, name, success := parse_tag_header(data, .Byte, is_named);
+parse__primitive_tag :: (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, name, success := parse_tag_header(data, type, is_named);
+  if !success then return .{}, .{}, false;
 
-  payload: Tag_Value;
-  payload.type = .Byte;
-  payload.as_byte = next_data[0];
+  #insert -> string {
+    String :: #import "String";
+    #import "Reflection";
 
-  ret := Tag.{name, payload};
+    field: string = sprint("as_%", enum_value_to_name(type));
+    String.to_lower_in_place(field);
 
-  next_data.data += 1;
-  next_data.count -= 1;
+    return sprint(#string JAI
+    payload: Tag_Value;
+    payload.type    = type;
+    payload.%       = byte_swap_if_necessary((cast(type_of(*payload.%))next_data.data).*);
+
+    ret := Tag.{name, payload};
+
+    next_data.data  += size_of(type_of(payload.%));
+    next_data.count -= size_of(type_of(payload.%));
+    JAI, field, field, field, field);
+  }
 
   return next_data, ret, true;
+}
+
+parse_tag_byte :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, value, success := parse__primitive_tag(data, is_named, .Byte);
+  return next_data, value, success;
+}
+
+parse_tag_short :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  next_data, value, success := parse__primitive_tag(data, is_named, .Short);
+  return next_data, value, success;
 }
 
 main :: () {
@@ -134,9 +155,9 @@ main :: () {
 
   print("%\n", data);
 
-  mogus := u8.[1, 0, 5, 70, 111, 114, 103, 101, 69];
-  _, byte, _ := parse_tag_byte(mogus);
-  print("%\n", byte);
+  mogus := u8.[2, 0, 5, 70, 111, 114, 103, 101, 0, 69];
+  _, byte, _ := parse_tag_short(mogus);
+  print("% %\n", byte, byte.payload.as_short);
 }
 
 #import "Basic";
