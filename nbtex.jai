@@ -1,84 +1,80 @@
-#import "Basic";
-#import "File";
-
-read_entire_file_bytes :: (name: string) -> [] u8, bool {
-  content, success := read_entire_file(name, log_errors = false);
-
-  return xx content, success;
+Tag_Type :: enum u8 {
+  // TYPE: 0  NAME: TAG_End
+  // Payload: None.
+  // Note:    This tag is used to mark the end of a list.
+  //          Cannot be named! If type 0 appears where a Named Tag is expected, the name is assumed to be "".
+  //          (In other words, this Tag is always just a single 0 byte when named, and nothing in all other cases)
+  End :: 0;
+  // TYPE: 1  NAME: TAG_Byte
+  // Payload: A single signed byte (8 bits)
+  Byte :: 1;
+  // TYPE: 2  NAME: TAG_Short
+  // Payload: A signed short (16 bits, big endian)
+  Short :: 2;
+  // TYPE: 3  NAME: TAG_Int
+  // Payload: A signed short (32 bits, big endian)
+  Int :: 3;
+  // TYPE: 4  NAME: TAG_Long
+  // Payload: A signed long (64 bits, big endian)
+  Long :: 4;
+  // TYPE: 5  NAME: TAG_Float
+  // Payload: A floating point value (32 bits, big endian, IEEE 754-2008, binary32)
+  Float :: 5;
+  // TYPE: 6  NAME: TAG_Double
+  // Payload: A floating point value (64 bits, big endian, IEEE 754-2008, binary64)
+  Double :: 6;
+  // TYPE: 7  NAME: TAG_Byte_Array
+  // Payload: TAG_Int length
+  //          An array of bytes of unspecified format. The length of this array is <length> bytes
+  Byte_Array :: 7;
+  // TYPE: 8  NAME: TAG_String
+  // Payload: TAG_Short length
+  //          An array of bytes defining a string in UTF-8 format. The length of this array is <length> bytes
+  String :: 8;
+  // TYPE: 9  NAME: TAG_List
+  // Payload: TAG_Byte tagId
+  //          TAG_Int length
+  //          A sequential list of Tags (not Named Tags), of type <typeId>. The length of this array is <length> Tags
+  // Notes:   All tags share the same type.
+  List :: 9;
+  // TYPE: 10 NAME: TAG_Compound
+  // Payload: A sequential list of Named Tags. This array keeps going until a TAG_End is found.
+  //          TAG_End end
+  // Notes:   If there's a nested TAG_Compound within this tag, that one will also have a TAG_End, so simply reading until the next TAG_End will not work.
+  //          The names of the named tags have to be unique within each TAG_Compound
+  //          The order of the tags is not guaranteed.
+  Compound :: 10;
 }
 
-is_gzip :: (data: []u8) -> bool {
-  // gzip magic number
-  return data[0] == 0x1f && data[1] == 0x8b;
+Tag_Value :: union type: Tag_Type {
+  .End        ,, _: void;
+  .Byte       ,, as_byte:       s8;
+  .Short      ,, as_short:      s16;
+  .Int        ,, as_int:        s32;
+  .Long       ,, as_long:       s64;
+  .Float      ,, as_float:      float32;
+  .Double     ,, as_double:     float64;
+  .Byte_Array ,, as_byte_array: []u8;
+  .String     ,, as_string:     string;
+  .List       ,, as_list:       []Tag;
+  .Compound   ,, as_compound:   []Tag;
 }
 
-// https://en.wikipedia.org/wiki/Gzip
-skip_and_check_header :: (data: []u8) -> []u8, bool {
-  header_size := 0;
-
-  if !is_gzip(data) then return .{}, false;
-  header_size += 2;
-
-  if data[2] != 8 then return .{}, false;
-  header_size += 1;
-
-  // flags
-  // [TODO]: implement support for flags so we can skip header properly
-  assert(data[3] == 0, "we do not support any gzip flags at the moment.");
-  header_size += 1;
-
-  // skip useless metadata
-  header_size += 6;
-
-  ret := data;
-  ret.data += header_size;
-  ret.count -= header_size;
-
-  return ret, true;
-}
-
-inflate :: (deflated_data: []u8) -> []u8, bool {
-  #import "stb_image";
-
-  headerless_data, success := skip_and_check_header(deflated_data);
-  if !success then return .{}, false;
-
-  length: s32 = ---;
-  ret := stbi_zlib_decode_noheader_malloc(headerless_data.data, xx headerless_data.count, *length);
-
-  if ret == null then return .{}, false;
-
-  return .{data = ret, count = xx length}, true;
+Tag :: struct {
+  type: Tag_Type;
+  name: string;
+  payload: Tag_Value;
 }
 
 main :: () {
   path := "./level.dat";
 
-  deflated_data, success := read_entire_file_bytes(path);
+  data, success := read_nbt_file(path);
+  if !success then exit(1);
 
-  if !success {
-    System :: #import "System";
-
-    code, s := System.get_error_value_and_string();
-    print("ERROR: Unable to read file '%': %\n", path, s, to_standard_error = true);
-    exit(69);
-  }
-
-  data: []u8 = ---;
-
-  if is_gzip(deflated_data) {
-    defer free(deflated_data.data);
-
-    inflated_data, success := inflate(deflated_data);
-    if !success {
-      print("ERROR: File '%' is probably corrupted\n", path, to_standard_error = true);
-      exit(69);
-    }
-
-    data = inflated_data;
-  } else {
-    data = deflated_data;
-  }
-
-  print("%\n", data.count);
+  print("%\n", data);
 }
+
+#import "Basic";
+
+#load "file.jai";
