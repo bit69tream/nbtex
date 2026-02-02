@@ -71,7 +71,7 @@ byte_swap_if_necessary :: (input: $T) -> T {
 }
 
 parse_string :: (data: []u8) -> (next_data: []u8, value: string, success: bool) {
-  length: u16 = byte_swap_if_necessary((cast(*u16)data.data).*);
+  length: u16 = byte_swap_if_necessary(cast(*u16, data.data).*);
 
   value: string = ---;
   value.data = data.data + size_of(u16);
@@ -126,7 +126,7 @@ inline (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8,
     return sprint(#string JAI
     payload: Tag_Value;
     payload.type    = type;
-    payload.%       = byte_swap_if_necessary((cast(type_of(*payload.%))next_data.data).*);
+    payload.%       = byte_swap_if_necessary(cast(type_of(*payload.%), next_data.data).*);
 
     ret := Tag.{name, payload};
 
