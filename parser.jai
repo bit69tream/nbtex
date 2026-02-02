@@ -35,6 +35,17 @@ Tag :: struct {
   using payload: Tag_Value;
 }
 
+parse_tag :: (data: []u8) -> (next_data: []u8, value: Tag, success: bool) {
+  for parsers {
+    next_data, value, success := it.proc(data);
+    if success then return next_data, value, true;
+  }
+
+  return .{}, .{}, false;
+}
+
+#scope_file
+
 Tag_Parser_Proc :: #type (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool);
 Tag_Parser :: struct {
   type: Tag_Type;
@@ -351,13 +362,4 @@ parse_tag_long_array :: (data: []u8, is_named: bool = true) -> (next_data: []u8,
   };
 
   return next_data, ret, true;
-}
-
-parse_tag :: (data: []u8) -> (next_data: []u8, value: Tag, success: bool) {
-  for parsers {
-    next_data, value, success := it.proc(data);
-    if success then return next_data, value, true;
-  }
-
-  return .{}, .{}, false;
 }

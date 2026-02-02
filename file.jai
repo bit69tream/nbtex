@@ -1,5 +1,38 @@
 #import "File";
 
+// this function takes care of error reporting
+read_nbt_file :: (path: string) -> []u8, bool {
+  deflated_data, success := read_entire_file_bytes(path);
+
+  if !success {
+    System :: #import "System";
+
+    code, s := System.get_error_value_and_string();
+    print("ERROR: Unable to read file '%': %\n", path, s, to_standard_error = true);
+    return .{}, false;
+  }
+
+  data: []u8 = ---;
+
+  if is_gzip(deflated_data) {
+    defer free(deflated_data.data);
+
+    inflated_data, success := inflate(deflated_data);
+    if !success {
+      print("ERROR: File '%' is probably corrupted\n", path, to_standard_error = true);
+      return .{}, false;
+    }
+
+    data = inflated_data;
+  } else {
+    data = deflated_data;
+  }
+
+  return data, true;
+}
+
+#scope_file
+
 read_entire_file_bytes :: (name: string) -> [] u8, bool {
   content, success := read_entire_file(name, log_errors = false);
 
@@ -48,35 +81,4 @@ inflate :: (deflated_data: []u8) -> []u8, bool {
   if ret == null then return .{}, false;
 
   return .{data = ret, count = xx length}, true;
-}
-
-// this function takes care of error reporting
-read_nbt_file :: (path: string) -> []u8, bool {
-  deflated_data, success := read_entire_file_bytes(path);
-
-  if !success {
-    System :: #import "System";
-
-    code, s := System.get_error_value_and_string();
-    print("ERROR: Unable to read file '%': %\n", path, s, to_standard_error = true);
-    return .{}, false;
-  }
-
-  data: []u8 = ---;
-
-  if is_gzip(deflated_data) {
-    defer free(deflated_data.data);
-
-    inflated_data, success := inflate(deflated_data);
-    if !success {
-      print("ERROR: File '%' is probably corrupted\n", path, to_standard_error = true);
-      return .{}, false;
-    }
-
-    data = inflated_data;
-  } else {
-    data = deflated_data;
-  }
-
-  return data, true;
 }
