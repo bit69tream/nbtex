@@ -35,6 +35,55 @@ Tag :: struct {
   using payload: Tag_Value;
 }
 
+print_tag_as_json :: (tag: Tag, first: bool = true, print_name: bool = true) {
+  if first then print("{");
+  if print_name then print("\"%\": ", tag.name);
+
+  print_string_escaped :: (str: string) {
+    print("\"");
+    for str {
+      if is_alnum(it) {
+        print_character(it);
+      } else {
+        print("\\u%", formatInt(it, base = 16, minimum_digits = 4));
+      }
+    }
+    print("\"");
+  }
+
+  print_tag_list :: (tag: Tag, left_bracket: u8, right_bracket: u8, print_name: bool = true) {
+    assert(tag.type == .List || tag.type == .Compound);
+
+    print_character(left_bracket);
+    for tag.as_list {
+      print_tag_as_json(it, false, print_name);
+      if it_index < tag.as_list.count-1 {
+        print(",");
+      }
+    }
+    print_character(right_bracket);
+  }
+
+  if #complete tag.type == {
+    // @Note: to be fair, the END tag should never be present in the parsed data
+  case .End;        print("\":end:\"");
+  case .Byte;       print("\":byte:%\"", tag.as_byte);
+  case .Short;      print("\":short:%\"", tag.as_short);
+  case .Int;        print("\":int:%\"", tag.as_int);
+  case .Long;       print("\":long:%\"", tag.as_long);
+  case .Float;      print("\":float:%\"", tag.as_float);
+  case .Double;     print("\":double:%\"", tag.as_double);
+  case .Byte_Array; print("%", tag.as_byte_array);
+  case .String;     print_string_escaped(tag.as_string);
+  case .List;       print_tag_list(tag, #char "[", #char "]", false);
+  case .Compound;   print_tag_list(tag, #char "{", #char "}");
+  case .Int_Array;  print("%", tag.as_int_array);
+  case .Long_Array; print("%", tag.as_long_array);
+  }
+
+  if first then print("}\n");
+}
+
 parse_tag :: (data: []u8) -> (next_data: []u8, value: Tag, success: bool) {
   for parsers {
     next_data, value, success := it.proc(data);

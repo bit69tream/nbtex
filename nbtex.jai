@@ -4,9 +4,9 @@ main :: () {
   data, success := read_nbt_file(path);
   if !success then exit(1);
 
-  print("%\n", data);
   next_data, level, succ := parse_tag(data);
-  print("% %\n", succ, level);
+
+  print_tag_as_json(level);
 }
 
 get_file_from_command_line_arguments :: () -> string {
