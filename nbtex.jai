@@ -14,7 +14,7 @@ window_height: s32 = 900;
 current_time: float64;
 last_time:    float64;
 
-FONT :: #run read_entire_file_bytes("./InterVariable.ttf");
+FONT :: #run read_entire_file_bytes("./Inter-Light.ttf");
 
 background_font: *Simp.Dynamic_Font;
 font:            *Simp.Dynamic_Font;
