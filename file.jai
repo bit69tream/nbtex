@@ -1,8 +1,15 @@
 #import "File";
 
+NBT_File :: struct {
+  path:     string;
+  basename: string;
+  content:  Tag;
+}
+
 // this function takes care of error reporting
-read_nbt_file :: (path: string) -> []u8, bool {
-  deflated_data, success := read_entire_file_bytes(path);
+read_nbt_file :: (path: string) -> NBT_File, bool {
+  absolute_path := get_absolute_path(path);
+  deflated_data, success := read_entire_file_bytes(absolute_path);
 
   if !success {
     System :: #import "System";
@@ -28,7 +35,15 @@ read_nbt_file :: (path: string) -> []u8, bool {
     data = deflated_data;
   }
 
-  return data, true;
+  _, tag, succ := parse_tag(data);
+  if !succ then return .{}, false;
+
+  ret: NBT_File;
+  ret.path = absolute_path;
+  ret.basename = path_filename(absolute_path);
+  ret.content = tag;
+
+  return ret, true;
 }
 
 read_entire_file_bytes :: (name: string) -> [] u8, bool {

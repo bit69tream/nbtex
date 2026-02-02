@@ -22,11 +22,11 @@ font:            *Simp.Dynamic_Font;
 current_theme: s32 = xx Default_Themes.Freddie_Freeloader;
 theme: Overall_Theme;
 
-NBT_File :: struct {
-  path:     string;
-  basename: string;
-  content:  Tag;
+GUI_NBT_File :: struct {
+  #as using nbt: NBT_File;
 }
+
+gui_nbt_files: [..]GUI_NBT_File;
 
 render_frame :: (dt: float) {
   proc := default_theme_procs[current_theme];
@@ -105,7 +105,7 @@ main :: () {
   } else #if OS == .LINUX {
     X11 :: #import "X11";
     //                  gzipped nbt files   uncompressed nbt files
-    typelist := string.["application/gzip", "application/octet-stream"];
+    typelist := string.["url/url", "text/uri-list", "text/plain", "application/gzip", "application/octet-stream"];
     X11.enable_drag_and_drop(window, typelist);
   } else #if OS == .MACOS {
     #import "Objective_C";
@@ -129,7 +129,6 @@ main :: () {
 
     Input.update_window_events();
 
-
     for Input.get_window_resizes() {
       Simp.update_window(it.window);
 
@@ -150,9 +149,13 @@ main :: () {
 
       if event.type == {
         case .DRAG_AND_DROP_FILES;
-          // for dropped_files free(it);
-          // array_reset(*dropped_files);
-          // for event.files array_add(*dropped_files, copy_string(it));
+          for event.files {
+            nbt_file, success := read_nbt_file(it);
+            if !success then continue;
+
+            print("parsed % file\n", nbt_file.basename);
+            array_add(*nbt_files, nbt_file);
+          }
       }
     }
 
@@ -161,17 +164,6 @@ main :: () {
     reset_temporary_storage();
     sleep_milliseconds(16);
   }
-}
-
-old_main :: () {
-  path := get_file_from_command_line_arguments();
-
-  data, success := read_nbt_file(path);
-  if !success then exit(1);
-
-  next_data, level, succ := parse_tag(data);
-
-  print_tag_as_json(level);
 }
 
 get_file_from_command_line_arguments :: () -> string {
