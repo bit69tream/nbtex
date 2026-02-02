@@ -116,7 +116,7 @@ parse_tag_header :: (data: []u8, type: Tag_Type, is_named: bool = true) -> (next
 
 parse__primitive_tag ::
 inline (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8, value: Tag, success: bool) {
-  name: string = ---;
+  name: string = "";
   next_data := data;
 
   if is_named {
@@ -192,7 +192,7 @@ parse_tag_double :: (data: []u8, is_named: bool = true) -> (next_data: []u8, val
 }
 
 parse_tag_string :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  name: string = ---;
+  name: string = "";
   next_data := data;
 
   if is_named {
@@ -215,7 +215,7 @@ parse_tag_string :: (data: []u8, is_named: bool = true) -> (next_data: []u8, val
 }
 
 parse_tag_list :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  name: string = ---;
+  name: string = "";
   next_data := data;
 
   if is_named {
@@ -263,7 +263,7 @@ parse_tag_list :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value
 }
 
 parse_tag_compound :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  name: string = ---;
+  name: string = "";
   next_data := data;
 
   if is_named {
@@ -297,7 +297,7 @@ parse_tag_compound :: (data: []u8, is_named: bool = true) -> (next_data: []u8, v
 }
 
 parse_tag_int_array :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  name: string = ---;
+  name: string = "";
   next_data := data;
 
   if is_named {
@@ -331,7 +331,7 @@ parse_tag_int_array :: (data: []u8, is_named: bool = true) -> (next_data: []u8, 
 }
 
 parse_tag_long_array :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
-  name: string = ---;
+  name: string = "";
   next_data := data;
 
   if is_named {
