@@ -31,13 +31,13 @@ read_nbt_file :: (path: string) -> []u8, bool {
   return data, true;
 }
 
-#scope_file
-
 read_entire_file_bytes :: (name: string) -> [] u8, bool {
   content, success := read_entire_file(name, log_errors = false);
 
   return xx content, success;
 }
+
+#scope_file
 
 is_gzip :: (data: []u8) -> bool {
   // gzip magic number
