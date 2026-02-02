@@ -186,13 +186,13 @@ inline (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8,
     return sprint(#string JAI
     payload: Tag_Value;
     payload.type    = type;
-    payload.%       = byte_swap_if_necessary(cast(type_of(*payload.%), next_data.data).*);
+    payload.%1      = byte_swap_if_necessary(cast(type_of(*payload.%1), next_data.data).*);
 
     ret := Tag.{name, payload};
 
-    next_data.data  += size_of(type_of(payload.%));
-    next_data.count -= size_of(type_of(payload.%));
-    JAI, field, field, field, field);
+    next_data.data  += size_of(type_of(payload.%1));
+    next_data.count -= size_of(type_of(payload.%1));
+    JAI, field);
   }
 
   return next_data, ret, true;
