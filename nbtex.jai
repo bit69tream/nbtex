@@ -28,6 +28,13 @@ GUI_NBT_File :: struct {
 
 gui_nbt_files: [..]GUI_NBT_File;
 
+Info_Warning_Popup :: struct {
+   #as using info: Subwindow_Info;
+   text: string;
+ }
+
+info_warning_popups: [..]Info_Warning_Popup;
+
 render_frame :: (dt: float) {
   proc := default_theme_procs[current_theme];
   theme = proc();
@@ -66,9 +73,29 @@ render_frame :: (dt: float) {
     label(r, "Or pass your files as cmd args :)", *label_theme);
   }
 
+  {
+    popup_theme := theme.subwindow_theme;
+
+    for * info_warning_popups {
+      if it.open {
+        add_subwindow(it, *popup_theme, it_index);
+      }
+    }
+  }
+
   draw_popups();
 
   Simp.swap_buffers(window);
+}
+
+render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_data: *void) {
+  text := cast(*string, user_data).*;
+
+  label_theme := theme.label_theme;
+  label_theme.font = font;
+
+  label(content_rect, text, *label_theme);
+  // Simp.draw_text(font, xx content_rect.x, xx (content_rect.y + content_rect.h *.5), text);
 }
 
 working_directory_set := false;
@@ -104,7 +131,6 @@ main :: () {
     Windows.DragAcceptFiles(window, cast(Windows.BOOL) true);
   } else #if OS == .LINUX {
     X11 :: #import "X11";
-    //                  gzipped nbt files   uncompressed nbt files
     typelist := string.["url/url", "text/uri-list", "text/plain", "application/gzip", "application/octet-stream"];
     X11.enable_drag_and_drop(window, typelist);
   } else #if OS == .MACOS {
@@ -151,15 +177,45 @@ main :: () {
         case .DRAG_AND_DROP_FILES;
           for event.files {
             nbt_file, success := read_nbt_file(it);
-            if !success then continue;
+            if !success then {
+              popup := Info_Warning_Popup.{};
+              popup.title_text = "WARNING";
+              popup.text = sprint("File '%' is not a valid NBT file (or doesn't exist).", path_filename(it));
 
-            print("parsed % file\n", nbt_file.basename);
-            array_add(*nbt_files, nbt_file);
+              text_width := Simp.prepare_text(font, popup.text);
+              popup.rect = get_rect(xx window_width * .5 - xx text_width * .5, xx window_height * .5, xx (text_width * 1.05), xx font.character_height * 2.5);
+              popup.draw = render_warning_info_popup;
+
+              array_add(*info_warning_popups, popup);
+
+              {
+                using info_warning_popups[info_warning_popups.count-1];
+                info.user_data = *text;
+              }
+            } else {
+              print("parsed % file\n", nbt_file.basename);
+              gui_nbt_file := GUI_NBT_File.{};
+              gui_nbt_file.nbt = nbt_file;
+              array_add(*gui_nbt_files, gui_nbt_file);
+            }
           }
       }
     }
 
     render_frame(dt);
+
+    closed_index: s64 = -1;
+    for info_warning_popups {
+      if !it.open {
+        closed_index = it_index;
+        break;
+      }
+    }
+
+    if closed_index != -1 {
+      free(info_warning_popups[closed_index].text.data);
+      array_unordered_remove_by_index(*info_warning_popups, closed_index);
+    }
 
     reset_temporary_storage();
     sleep_milliseconds(16);
