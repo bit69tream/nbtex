@@ -29,9 +29,9 @@ GUI_NBT_File :: struct {
 gui_nbt_files: [..]GUI_NBT_File;
 
 Info_Warning_Popup :: struct {
-   #as using info: Subwindow_Info;
-   text: string;
- }
+  #as using info: Subwindow_Info;
+  text: string;
+}
 
 info_warning_popups: [..]Info_Warning_Popup;
 
