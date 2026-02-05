@@ -95,7 +95,6 @@ render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_
   label_theme.font = font;
 
   label(content_rect, text, *label_theme);
-  // Simp.draw_text(font, xx content_rect.x, xx (content_rect.y + content_rect.h *.5), text);
 }
 
 working_directory_set := false;
