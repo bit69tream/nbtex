@@ -1,6 +1,19 @@
 quit := false;
 
-init :: () {
+init :: (files_via_command_line: []string) {
+  for files_via_command_line {
+    nbt_file, success := read_nbt_file(it);
+
+    if !success {
+      print("ERROR: File '%' is either not a valid NBT file or inaccessible.\n", path_filename(it));
+      exit(1);
+    }
+
+    gui_nbt_file := GUI_NBT_File.{};
+    gui_nbt_file.nbt = nbt_file;
+    array_add(*gui_nbt_files, gui_nbt_file);
+  }
+
   #if OS == .WINDOWS {
     Windows :: #import "Windows";
     Windows.SetProcessDPIAware();

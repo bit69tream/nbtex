@@ -1,3 +1,5 @@
+#add_context are_we_parsing_compound: bool = false;
+
 Tag_Type :: enum u8 {
   End        :: 0;
   Byte       :: 1;
@@ -199,6 +201,10 @@ inline (data: []u8, is_named: bool = true, $type: Tag_Type) -> (next_data: []u8,
 }
 
 parse_tag_end :: (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool) {
+  if !context.are_we_parsing_compound {
+    return .{}, .{}, false;
+  }
+
   if data[0] != xx Tag_Type.End then return .{}, .{}, false;
   next_data := data;
   next_data.data  += 1;
@@ -326,7 +332,7 @@ parse_tag_compound :: (data: []u8, is_named: bool = true) -> (next_data: []u8, v
   payload: [..]Tag;
 
   while true {
-    new_data, tag, success := parse_tag(next_data);
+    new_data, tag, success := parse_tag(next_data,, are_we_parsing_compound = true);
     if !success then return .{}, .{}, false;
 
     next_data = new_data;

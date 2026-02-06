@@ -1,5 +1,8 @@
 main :: () {
-  init();
+  files_via_command_line := get_files_from_command_line_arguments();
+
+  // this function will exit() the program if it can't open the files
+  init(files_via_command_line);
 
   while !quit {
     dt := get_delta_time();
@@ -12,25 +15,26 @@ main :: () {
   }
 }
 
-get_file_from_command_line_arguments :: () -> string {
+get_files_from_command_line_arguments :: () -> []string {
   args := get_command_line_arguments();
 
   usage :: #string END
-USAGE: nbtex [filepath]
+USAGE: nbtex [options] [files]
+
+OPTIONS:
+  --help     Print this message
 END;
 
-  if args.count > 2 {
-    print("ERROR: incorrect command line arguments\n", to_standard_error = true);
-    print("%", usage, to_standard_error = true);
-    exit(1);
+  if args.count == 1 {
+    return .{};
   }
 
-  if args.count <= 1 {
-    print("%", usage, to_standard_error = true);
-    exit(1);
+  if args[1] == "--help" {
+    print(usage, to_standard_error = true);
+    exit(0);
   }
 
-  return args[1];
+  return array_view(args, 1);
 }
 
 #import "Basic";
