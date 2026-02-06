@@ -20,14 +20,12 @@ $ jai.exe nbtex.jai
 You can either pass the files as command line arguments or drag'n'drop them
 into the program after launching.
 
-```
 ```shell
 $ nbtex --help
 USAGE: nbtex [options] [files]
 
 OPTIONS:
   --help     Print this message
-```
 ```
 
 # Linux: Display protocol
