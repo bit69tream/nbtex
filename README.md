@@ -11,8 +11,8 @@ Currently only supports gzip'ed NBT files and uncompressed NBT files. So no
 SNBT for now (feel free to PR tho).
 
 # Building
-```shell
 It has no external dependencies apart from the Jai programming language.
+```shell
 $ jai.exe nbtex.jai
 ```
 
