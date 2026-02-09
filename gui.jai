@@ -75,8 +75,14 @@ update_and_process_events :: () {
             popup.text = sprint("File '%' is not a valid NBT file (or doesn't exist).", path_filename(it));
 
             text_width := Simp.prepare_text(font, popup.text);
-            popup.rect = get_rect(xx window_width * .5 - xx text_width * .5, xx window_height * .5, xx (text_width * 1.05), xx font.character_height * 2.5);
+            popup.rect = get_rect(xx window_width * .5 - xx text_width * .5,
+                                  xx window_height * .5,
+                                  xx (text_width * 1.05),
+                                  xx font.character_height * 2.5);
             popup.draw = render_warning_info_popup;
+
+            popup.id = global_subwindow_id_counter;
+            global_subwindow_id_counter += 1;
 
             array_add(*info_warning_popups, popup);
 
@@ -160,7 +166,7 @@ render_frame :: (dt: float) {
 
     for * info_warning_popups {
       if it.open {
-        add_subwindow(it, *popup_theme, it_index);
+        add_subwindow(it, *popup_theme, it.id);
       }
     }
   }
@@ -194,11 +200,14 @@ GUI_NBT_File :: struct {
 gui_nbt_files: [..]GUI_NBT_File;
 
 Info_Warning_Popup :: struct {
+  id: s64 = 0;
   #as using info: Subwindow_Info;
-  text: string;
+  text: string = "";
 }
 
 info_warning_popups: [..]Info_Warning_Popup;
+
+global_subwindow_id_counter: s64 = 0;
 
 render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_data: *void) {
   text := cast(*string, user_data).*;
