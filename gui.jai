@@ -9,9 +9,7 @@ init :: (files_via_command_line: []string) {
       exit(1);
     }
 
-    gui_nbt_file := GUI_NBT_File.{};
-    gui_nbt_file.nbt = nbt_file;
-    array_add(*gui_nbt_files, gui_nbt_file);
+    add_gui_nbt_file(nbt_file);
   }
 
   #if OS == .WINDOWS {
@@ -70,31 +68,9 @@ update_and_process_events :: () {
         for event.files {
           nbt_file, success := read_nbt_file(it);
           if !success then {
-            popup := Info_Warning_Popup.{};
-            popup.title_text = "WARNING";
-            popup.text = sprint("File '%' is not a valid NBT file (or doesn't exist).", path_filename(it));
-
-            text_width := Simp.prepare_text(font, popup.text);
-            popup.rect = get_rect(xx window_width * .5 - xx text_width * .5,
-                                  xx window_height * .5,
-                                  xx (text_width * 1.05),
-                                  xx font.character_height * 2.5);
-            popup.draw = render_warning_info_popup;
-
-            popup.id = global_subwindow_id_counter;
-            global_subwindow_id_counter += 1;
-
-            array_add(*info_warning_popups, popup);
-
-            {
-              using info_warning_popups[info_warning_popups.count-1];
-              info.user_data = *text;
-            }
+            add_warning_popup(it);
           } else {
-            print("parsed % file\n", nbt_file.basename);
-            gui_nbt_file := GUI_NBT_File.{};
-            gui_nbt_file.nbt = nbt_file;
-            array_add(*gui_nbt_files, gui_nbt_file);
+            add_gui_nbt_file(nbt_file);
           }
         }
     }
@@ -195,6 +171,9 @@ theme: Overall_Theme;
 
 GUI_NBT_File :: struct {
   #as using nbt: NBT_File;
+  // @Note I'm planning to render the files fullscreen with each file belonging
+  // to own tab. or maybe it'd be nice to create separate windows for each file
+  // so that I don't have to implement split view
 }
 
 gui_nbt_files: [..]GUI_NBT_File;
@@ -236,11 +215,47 @@ init_fonts :: () {
   font = Simp.get_font_at_size(FONT, font_height);
 }
 
+add_warning_popup :: (path: string) {
+  popup := Info_Warning_Popup.{};
+  popup.title_text = "WARNING";
+  popup.text = sprint("File '%' is not a valid NBT file (or doesn't exist).", path_filename(path));
+
+  text_width := Simp.prepare_text(font, popup.text);
+  popup.rect = get_rect(xx window_width * .5 - xx text_width * .5,
+                        xx window_height * .5,
+                        xx (text_width * 1.05),
+                        xx font.character_height * 2.5);
+  popup.draw = render_warning_info_popup;
+
+  popup.id = next_subwindow_id();
+
+  array_add(*info_warning_popups, popup);
+
+  {
+    using info_warning_popups[info_warning_popups.count-1];
+    info.user_data = *text;
+  }
+}
+
+add_gui_nbt_file :: (nbt_file: NBT_File) {
+  gui_nbt_file := GUI_NBT_File.{};
+  gui_nbt_file.nbt = nbt_file;
+
+  array_add(*gui_nbt_files, gui_nbt_file);
+}
+
+next_subwindow_id :: () -> s64 {
+  id := global_subwindow_id_counter;
+  global_subwindow_id_counter += 1;
+
+  return id;
+}
+
 #import "GetRect";
 #import "Math";
 #import "Window_Creation";
 #import "String";
 #import "System";
 
-Simp :: #import "Simp";
+Simp  :: #import "Simp";
 Input :: #import "Input";
