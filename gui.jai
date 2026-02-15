@@ -112,29 +112,37 @@ render_frame :: (dt: float) {
   _, _, width, height := get_dimensions(window, true);
   ui_per_frame_update(window, width, height, current_time);
 
-  {
-    label_theme := theme.label_theme;
-    label_theme.font = background_font;
-    label_theme.text_color = theme.text_color;
+  // a tooltip when there are no files open
+  if gui_nbt_files.count == 0 {
+    {
+      label_theme := theme.label_theme;
+      label_theme.font = background_font;
+      label_theme.text_color = theme.text_color;
 
-    font_height: float = xx background_font.character_height;
+      font_height: float = xx background_font.character_height;
 
-    r := get_rect(0, xx (window_height / 2) + font_height*.5, xx window_width, font_height);
-    label(r, "Drag'n'Drop files", *label_theme);
+      r := get_rect(0, xx (window_height / 2) + font_height*.5, xx window_width, font_height);
+      label(r, "Drag'n'Drop files", *label_theme);
 
-    r = get_rect(0, xx (window_height / 2) - font_height*.5, xx window_width, font_height);
-    label(r, "to start tinkering…", *label_theme);
+      r = get_rect(0, xx (window_height / 2) - font_height*.5, xx window_width, font_height);
+      label(r, "to start tinkering…", *label_theme);
+    }
+
+    {
+      label_theme := theme.label_theme;
+      label_theme.font = font;
+      label_theme.text_color = theme.background_color_bright;
+
+      font_height: float = xx font.character_height;
+
+      r := get_rect(0, font_height/2, xx window_width, font_height);
+      label(r, "Or pass your files as cmd args :)", *label_theme);
+    }
   }
 
+  // tabs of files
   {
-    label_theme := theme.label_theme;
-    label_theme.font = font;
-    label_theme.text_color = theme.background_color_bright;
 
-    font_height: float = xx font.character_height;
-
-    r := get_rect(0, font_height/2, xx window_width, font_height);
-    label(r, "Or pass your files as cmd args :)", *label_theme);
   }
 
   {
