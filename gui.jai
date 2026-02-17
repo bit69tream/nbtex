@@ -99,33 +99,6 @@ get_delta_time :: () -> float {
   return dt;
 }
 
-render_tooltip :: () {
-  {
-    label_theme := theme.label_theme;
-    label_theme.font = background_font;
-    label_theme.text_color = theme.text_color;
-
-    font_height: float = xx background_font.character_height;
-
-    r := get_rect(0, xx (window_height / 2) + font_height*.5, xx window_width, font_height);
-    label(r, "Drag'n'Drop files", *label_theme);
-
-    r = get_rect(0, xx (window_height / 2) - font_height*.5, xx window_width, font_height);
-    label(r, "to start tinkering…", *label_theme);
-  }
-
-  {
-    label_theme := theme.label_theme;
-    label_theme.font = font;
-    label_theme.text_color = theme.background_color_bright;
-
-    font_height: float = xx font.character_height;
-
-    r := get_rect(0, font_height/2, xx window_width, font_height);
-    label(r, "Or pass your files as cmd args :)", *label_theme);
-  }
-}
-
 render_frame :: (dt: float) {
   proc := default_theme_procs[current_theme];
   theme = proc();
@@ -140,10 +113,13 @@ render_frame :: (dt: float) {
   ui_per_frame_update(window, width, height, current_time);
 
   if gui_nbt_files.count == 0 then render_tooltip();
-
-  // tabs of files
-  {
-
+  else for * gui_nbt_files {
+    window_theme := theme.subwindow_theme;
+    if it.info.open {
+      add_subwindow(*it.info, *window_theme, it.subwindow_id);
+    } else {
+      // @Todo close file
+    }
   }
 
   {
@@ -180,9 +156,8 @@ theme: Overall_Theme;
 
 GUI_NBT_File :: struct {
   #as using nbt: NBT_File;
-  // @Note I'm planning to render the files fullscreen with each file belonging
-  // to own tab. or maybe it'd be nice to create separate windows for each file
-  // so that I don't have to implement split view
+  subwindow_id: s64;
+  info: Subwindow_Info;
 }
 
 gui_nbt_files: [..]GUI_NBT_File;
@@ -250,7 +225,24 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
   gui_nbt_file := GUI_NBT_File.{};
   gui_nbt_file.nbt = nbt_file;
 
+  gui_nbt_file.subwindow_id = next_subwindow_id();
+  gui_nbt_file.info.title_text = nbt_file.basename;
+  gui_nbt_file.info.rect = get_rect(xx (window_width / 64),
+                                    xx (window_height / 64),
+                                    xx (window_width * .5),
+                                    xx (window_height * .9));
+  gui_nbt_file.info.draw = render_nbt_file;
+
   array_add(*gui_nbt_files, gui_nbt_file);
+
+  {
+    using gui_nbt_files[gui_nbt_files.count-1];
+    info.user_data = *nbt;
+  }
+}
+
+render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
+  nbt_file := cast(*NBT_File, data).*;
 }
 
 next_subwindow_id :: () -> s64 {
@@ -258,6 +250,33 @@ next_subwindow_id :: () -> s64 {
   global_subwindow_id_counter += 1;
 
   return id;
+}
+
+render_tooltip :: () {
+  {
+    label_theme := theme.label_theme;
+    label_theme.font = background_font;
+    label_theme.text_color = theme.text_color;
+
+    font_height: float = xx background_font.character_height;
+
+    r := get_rect(0, xx (window_height / 2) + font_height*.5, xx window_width, font_height);
+    label(r, "Drag'n'Drop files", *label_theme);
+
+    r = get_rect(0, xx (window_height / 2) - font_height*.5, xx window_width, font_height);
+    label(r, "to start tinkering…", *label_theme);
+  }
+
+  {
+    label_theme := theme.label_theme;
+    label_theme.font = font;
+    label_theme.text_color = theme.background_color_bright;
+
+    font_height: float = xx font.character_height;
+
+    r := get_rect(0, font_height/2, xx window_width, font_height);
+    label(r, "Or pass your files as cmd args :)", *label_theme);
+  }
 }
 
 #import "GetRect";
