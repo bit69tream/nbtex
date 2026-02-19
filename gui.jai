@@ -256,6 +256,12 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0, has_name: bool = t
 
   tag_width := 0.;
 
+  // @Idea Maybe we shouldn't render all tags in a format of "{name}: [value...]"
+  // but instead just do "{name}: {data type} [EDIT BUTTON]"
+  // and upon the button press show a popup window with the tag value in a text box of sorts.
+  // That way we wouldn't need a lot of optimizations for rendering and
+  // navigating the NBT tree will also be easier (hopefully).
+
   if #complete tag.payload.type == {
     // @Note: to be fair, the END tag should never be present in the parsed data
   case .End;
