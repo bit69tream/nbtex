@@ -158,6 +158,8 @@ GUI_NBT_File :: struct {
   #as using nbt: NBT_File;
   subwindow_id: s64;
   info: Subwindow_Info;
+  horizontal_scroll_value: float;
+  vertical_scroll_value: float;
 }
 
 gui_nbt_files: [..]GUI_NBT_File;
@@ -233,16 +235,53 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
                                     xx (window_height * .9));
   gui_nbt_file.info.draw = render_nbt_file;
 
+  gui_nbt_file.info.user_data = cast(*void, gui_nbt_files.count);
   array_add(*gui_nbt_files, gui_nbt_file);
-
-  {
-    using gui_nbt_files[gui_nbt_files.count-1];
-    info.user_data = *nbt;
-  }
 }
 
+// most of the GetRect stuff here is copy-pasted from modules/GetRect/examples/example.jai
 render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
-  nbt_file := cast(*NBT_File, data).*;
+  index := cast(s64, data);
+  gui_nbt_file := *gui_nbt_files[index];
+
+  pad := floor(font.default_line_spacing * .5 + .5);
+  vertical_theme := theme.scrollable_region_theme;
+
+  vertical_theme.margin_flags = 0;
+  vertical_theme.region_background.frame_color.w = 0;
+
+  horizontal_theme := vertical_theme;
+  {
+    using horizontal_theme;
+    direction = .HORIZONTAL;
+    scrollbar_nib_theme.rectangle_shape.frame_thickness_type = .RELATIVE_TO_HEIGHT;
+    scrollbar_nib_theme.rectangle_shape.roundedness_type     = .RELATIVE_TO_HEIGHT;
+    region_background.shape.roundedness_type                 = .RELATIVE_TO_HEIGHT;
+    scrollbar_background.shape.roundedness_type              = .RELATIVE_TO_HEIGHT;
+    region_background.shape.rounding_flags                   = .NORTHWEST | .NORTHEAST;
+    scrollbar_background.shape.rounding_flags                = .SOUTHWEST | .SOUTHEAST;
+  }
+
+  horizontal_region, inside_horizontal := begin_scrollable_region(rect, *horizontal_theme);
+  vertical_region, inside := begin_scrollable_region(inside_horizontal, *vertical_theme);
+
+  scrollbar_width := inside_horizontal.w - inside.w;
+
+  x := inside.x + pad - gui_nbt_file.horizontal_scroll_value;
+  y := inside.y + inside.h + gui_nbt_file.vertical_scroll_value;
+
+  max_width := inside.w - scrollbar_width;
+
+  // actual rendering
+
+  min_y := y + cast(float) font.default_line_spacing - pad;
+  max_x := x + max_width + scrollbar_width + pad;
+
+  end_scrollable_region(vertical_region, 0, min_y,   *gui_nbt_file.vertical_scroll_value);
+  end_scrollable_region(horizontal_region, max_x, 0, *gui_nbt_file.horizontal_scroll_value);
+
+  gui_nbt_files[index].info.snap_to_size.x = max_x - x + pad;
+  gui_nbt_files[index].info.snap_to_size.y = inside.y - min_y + rect.h; // inside.h cancels itself
 }
 
 next_subwindow_id :: () -> s64 {
