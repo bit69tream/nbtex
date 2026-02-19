@@ -112,14 +112,21 @@ render_frame :: (dt: float) {
   _, _, width, height := get_dimensions(window, true);
   ui_per_frame_update(window, width, height, current_time);
 
+  gui_nbt_file_deletion_index := -1;
+
   if gui_nbt_files.count == 0 then render_tooltip();
   else for * gui_nbt_files {
     window_theme := theme.subwindow_theme;
     if it.info.open {
       add_subwindow(*it.info, *window_theme, it.subwindow_id);
     } else {
-      // @Todo close file
+      gui_nbt_file_deletion_index = it_index;
     }
+  }
+
+  if gui_nbt_file_deletion_index != -1 {
+    // @Todo save file dialog
+    array_unordered_remove_by_index(*gui_nbt_files, gui_nbt_file_deletion_index);
   }
 
   {
