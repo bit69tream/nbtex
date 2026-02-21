@@ -185,7 +185,7 @@ Info_Warning_Popup :: struct {
 
 info_warning_popups: [..]Info_Warning_Popup;
 
-global_subwindow_id_counter: s64 = 0;
+global_subwindow_id_counter: s64 = 1;
 
 render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_data: *void) {
   text := cast(*string, user_data).*;
@@ -199,14 +199,6 @@ render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_
 working_directory_set := false;
 
 init_fonts :: () {
-  if !working_directory_set {
-    // So that we can load our font, set to path of running executable.
-    path := path_strip_filename(get_path_of_running_executable());
-    set_working_directory(path);
-
-    working_directory_set = true;
-  }
-
   font_data:        []u8;
   font_italic_data: []u8;
 
@@ -214,6 +206,14 @@ init_fonts :: () {
     font_data   = FONT;
     font_italic = FONT_ITALIC;
   } else {
+    if !working_directory_set {
+      // So that we can load our font, set to path of running executable.
+      path := path_strip_filename(get_path_of_running_executable());
+      set_working_directory(path);
+
+      working_directory_set = true;
+    }
+
     font_data        = read_entire_file_bytes("./Inter-Light.ttf");
     font_italic_data = read_entire_file_bytes("./Inter-LightItalic.ttf");
   }
@@ -250,10 +250,13 @@ add_warning_popup :: (path: string) {
 
 add_gui_nbt_file :: (nbt_file: NBT_File) {
   gui_nbt_file := GUI_NBT_File.{};
-  gui_nbt_file.nbt = nbt_file;
+
+  gui_nbt_file.nbt.path = copy_string(nbt_file.path);
+  gui_nbt_file.nbt.basename = copy_string(nbt_file.basename);
+  gui_nbt_file.nbt.content = nbt_file.content;
 
   gui_nbt_file.subwindow_id = next_subwindow_id();
-  gui_nbt_file.info.title_text = copy_string(nbt_file.basename);
+  gui_nbt_file.info.title_text = gui_nbt_file.nbt.basename;
   gui_nbt_file.info.rect = get_rect(xx (window_width / 64),
                                     xx (window_height / 64),
                                     xx (window_width * .5),
@@ -328,6 +331,7 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: flo
 // most of the GetRect stuff here is copy-pasted from modules/GetRect/examples/example.jai
 render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
   index := cast(s64, data);
+  subwindow_id := gui_nbt_files[index].subwindow_id;
 
   pad := floor(font.default_line_spacing * .5 + .5);
   vertical_theme := theme.scrollable_region_theme;
@@ -347,8 +351,8 @@ render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
     scrollbar_background.shape.rounding_flags                = .SOUTHWEST | .SOUTHEAST;
   }
 
-  horizontal_region, inside_horizontal := begin_scrollable_region(rect, *horizontal_theme);
-  vertical_region, inside := begin_scrollable_region(inside_horizontal, *vertical_theme);
+  horizontal_region, inside_horizontal := begin_scrollable_region(rect, *horizontal_theme, subwindow_id);
+  vertical_region, inside := begin_scrollable_region(inside_horizontal, *vertical_theme,   subwindow_id);
 
   scrollbar_width := inside_horizontal.w - inside.w;
 

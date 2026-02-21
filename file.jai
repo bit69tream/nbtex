@@ -39,7 +39,7 @@ read_nbt_file :: (path: string) -> NBT_File, bool {
   if !succ then return .{}, false;
 
   ret: NBT_File;
-  ret.path = absolute_path;
+  ret.path = copy_string(absolute_path);
   ret.basename = path_filename(absolute_path);
   ret.content = tag;
 
