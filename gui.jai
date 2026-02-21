@@ -304,9 +304,9 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: flo
 
   selection_y_offset := font.character_height / 12;
 
-  left_x: s64 = xx (x + tag_width);
-  right_x: s64 = xx (x + tag_width + name_width);
-  top_y: s64 = xx (new_y + font_italic.character_height - font_italic.y_offset_for_centering / 2);
+  left_x: s64   = xx (x + tag_width);
+  right_x: s64  = xx (x + tag_width + name_width);
+  top_y: s64    = xx (new_y + font_italic.character_height - font_italic.y_offset_for_centering / 2);
   bottom_y: s64 = xx (new_y - font_italic.y_offset_for_centering / 2);
 
   if succ && mouse_x > left_x && mouse_x < right_x && mouse_y > bottom_y && mouse_y < top_y {
