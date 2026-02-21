@@ -269,16 +269,13 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
 }
 
 INDENT_STEP :: 1;
-render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: float, new_y: float) {
+render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: float, new_y: float) {
   INDENT_SPACE_WIDTH: float = xx font.em_width;
 
   indent_width := INDENT_SPACE_WIDTH * indent;
   new_y := y;
 
   tag_width := indent_width;
-
-  TAG_NAME_COLOR := theme.text_input_theme.text_color_over;
-  TAG_TYPE_COLOR := theme.text_input_theme.text_color;
 
   determine_tag_type :: (tag: Tag) -> string {
     if tag.payload.type == .List {
@@ -299,22 +296,45 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: flo
   tag_font := font;
 
   mouse_x, mouse_y, succ := get_mouse_pointer_position(window, true);
+  mouse_pos := Vector2.{xx mouse_x, xx mouse_y};
 
   tag_name := tprint("\"%\"", tag.name);
   name_width := Simp.prepare_text(tag_font, tag_name);
 
   selection_y_offset := font.character_height / 12;
 
-  left_x: s64   = xx (x + tag_width);
-  right_x: s64  = xx (x + tag_width + name_width);
-  top_y: s64    = xx (new_y + font_italic.character_height - font_italic.y_offset_for_centering / 2);
-  bottom_y: s64 = xx (new_y - font_italic.y_offset_for_centering / 2);
+  left_x   := cast(float32, x + tag_width);
+  right_x  := cast(float32, x + tag_width + name_width);
+  top_y    := cast(float32, new_y + font_italic.character_height - font_italic.y_offset_for_centering / 2);
+  bottom_y := cast(float32, new_y - font_italic.y_offset_for_centering / 2);
+  tag_name_rect := Vector4.{left_x, bottom_y, right_x, top_y};
 
-  if succ && mouse_x > left_x && mouse_x < right_x && mouse_y > bottom_y && mouse_y < top_y {
+  left_mouse_button_state  := Input.input_button_states[Input.Key_Code.MOUSE_BUTTON_LEFT];
+  right_mouse_button_state := Input.input_button_states[Input.Key_Code.MOUSE_BUTTON_RIGHT];
+
+  HIGHTLIGHT_COLOR := theme.text_input_theme.text_color_autocomplete;
+  TAG_NAME_COLOR   := theme.text_input_theme.text_color_over;
+  TAG_TYPE_COLOR   := theme.text_input_theme.text_color;
+
+  is_point_inside_rect :: (p: Vector2, r: Vector4) -> bool {
+    return p.x > r.x && p.x < r.z && p.y > r.y && p.y < r.w;
+  }
+
+  subwindow_status := get_status_flags(subwindow_rect);
+
+  my_weird_subwindow_rect := Vector4.{subwindow_rect.x, subwindow_rect.y, subwindow_rect.w, subwindow_rect.h};
+  is_mouse_inside_this_subwindow := (subwindow_status != 0) && is_point_inside_rect(mouse_pos, my_weird_subwindow_rect);
+
+  if is_mouse_inside_this_subwindow && succ && is_point_inside_rect(mouse_pos, tag_name_rect) {
     tag_font = font_italic;
     Simp.prepare_text(tag_font, tag_name);
 
-    Simp.immediate_quad(cast(float32) left_x, xx top_y, xx right_x, xx bottom_y, theme.text_input_theme.text_color_autocomplete);
+    if left_mouse_button_state != .NONE && left_mouse_button_state != .END {
+      TAG_NAME_COLOR   = theme.text_input_theme.text_color_autocomplete;
+      HIGHTLIGHT_COLOR = theme.text_input_theme.text_color_over;
+    }
+
+    Simp.immediate_quad(cast(float32) left_x, xx top_y, xx right_x, xx bottom_y, HIGHTLIGHT_COLOR);
   }
 
   Simp.draw_prepared_text(tag_font, xx (x + tag_width), xx new_y, TAG_NAME_COLOR);
@@ -329,7 +349,7 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: flo
     compound_tag_width := 0.;
     child_max_y := 0.;
     for tag.payload.as_compound {
-      sub_tag_width, sub_new_y := render_tag(x, new_y, it, indent + INDENT_STEP);
+      sub_tag_width, sub_new_y := render_tag(subwindow_rect, x, new_y, it, indent + INDENT_STEP);
       child_max_y = new_y;
       new_y = sub_new_y;
       compound_tag_width = max(compound_tag_width, sub_tag_width);
@@ -344,9 +364,9 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: flo
                           tag_tree_line_x+TAG_TREE_LINE_WIDTH,
                           new_y,
                           TREE_LINE_COLOR);
-      Simp.immediate_flush();
     }
   }
+  Simp.immediate_flush();
 
   return tag_width, new_y;
 }
@@ -382,7 +402,7 @@ render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
   x := inside.x + pad      - gui_nbt_files[index].horizontal_scroll_value;
   y := inside.y + inside.h + gui_nbt_files[index].vertical_scroll_value;
 
-  tag_width, new_y := render_tag(x, y, gui_nbt_files[index].nbt.content);
+  tag_width, new_y := render_tag(state.info.rect, x, y, gui_nbt_files[index].nbt.content);
 
   y = new_y;
 
