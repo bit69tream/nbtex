@@ -1,3 +1,5 @@
+BAKE_FONTS :: false;
+
 quit := false;
 
 init :: (files_via_command_line: []string) {
@@ -153,10 +155,14 @@ window_height: s32 = 900;
 current_time: float64;
 last_time:    float64;
 
-FONT :: #run read_entire_file_bytes("./Inter-Light.ttf");
+#if BAKE_FONTS {
+  FONT        :: #run read_entire_file_bytes("./Inter-Light.ttf");
+  FONT_ITALIC :: #run read_entire_file_bytes("./Inter-LightItalic.ttf");
+}
 
 background_font: *Simp.Dynamic_Font;
 font:            *Simp.Dynamic_Font;
+font_italic:     *Simp.Dynamic_Font;
 
 current_theme: s32 = xx Default_Themes.Freddie_Freeloader;
 theme: Overall_Theme;
@@ -201,11 +207,23 @@ init_fonts :: () {
     working_directory_set = true;
   }
 
+  font_data:        []u8;
+  font_italic_data: []u8;
+
+  #if BAKE_FONTS {
+    font_data   = FONT;
+    font_italic = FONT_ITALIC;
+  } else {
+    font_data        = read_entire_file_bytes("./Inter-Light.ttf");
+    font_italic_data = read_entire_file_bytes("./Inter-LightItalic.ttf");
+  }
+
   background_font_height := window_height / 16;
-  background_font = Simp.get_font_at_size(FONT, background_font_height);
+  background_font = Simp.get_font_at_size(font_data, background_font_height);
 
   font_height := window_height / 30;
-  font = Simp.get_font_at_size(FONT, font_height);
+  font = Simp.get_font_at_size(font_data, font_height);
+  font_italic = Simp.get_font_at_size(font_italic_data, font_height);
 }
 
 add_warning_popup :: (path: string) {
@@ -235,7 +253,7 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
   gui_nbt_file.nbt = nbt_file;
 
   gui_nbt_file.subwindow_id = next_subwindow_id();
-  gui_nbt_file.info.title_text = nbt_file.basename;
+  gui_nbt_file.info.title_text = copy_string(nbt_file.basename);
   gui_nbt_file.info.rect = get_rect(xx (window_width / 64),
                                     xx (window_height / 64),
                                     xx (window_width * .5),
