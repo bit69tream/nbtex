@@ -247,113 +247,61 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
 }
 
 INDENT_STEP :: 1;
-VALUE_COLOR :: Vector4.{1, 1, 1, 1};
-render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0, has_name: bool = true) -> (tag_width: float, new_y: float) {
-  INDENT_SPACE_WIDTH: float = xx font.em_width * .5;
+render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: float, new_y: float) {
+  INDENT_SPACE_WIDTH: float = xx font.em_width;
 
-  indented_x := x + INDENT_SPACE_WIDTH * indent;
+  indent_width := INDENT_SPACE_WIDTH * indent;
   new_y := y;
 
-  tag_width := 0.;
+  tag_width := indent_width;
 
-  // @Idea Maybe we shouldn't render all tags in a format of "{name}: [value...]"
-  // but instead just do "'{name}': {data type} [EDIT BUTTON]"
-  // and upon the button press show a popup window with the tag value in a text box of sorts.
-  // That way we wouldn't need a lot of optimizations for rendering and
-  // navigating the NBT tree will also be easier (hopefully).
+  TAG_NAME_COLOR := theme.text_input_theme.text_color_over;
+  TAG_TYPE_COLOR := theme.text_input_theme.text_color;
 
-  if #complete tag.payload.type == {
-    // @Note: to be fair, the END tag should never be present in the parsed data
-  case .End;
-    tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, "END", theme.text_input_theme.text_color_over);
-    new_y -= xx font.default_line_spacing;
-  case .Byte;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("%", tag.payload.as_byte);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .Short;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("%", tag.payload.as_short);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .Int;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("%", tag.payload.as_int);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .Long;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("%", tag.payload.as_long);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .Float;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("%", tag.payload.as_float);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .Double;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("%", tag.payload.as_double);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .Byte_Array;
-  case .String;
-    if has_name {
-      text := tprint("%:", tag.name);
-      tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, text, theme.text_color);
-    }
-    text := tprint("\"%\"", tag.payload.as_string);
-    tag_width += xx Simp.draw_text(font, xx (indented_x + tag_width), xx new_y, text, VALUE_COLOR);
-    new_y -= xx font.default_line_spacing;
-  case .List;
-    if has_name {
-      if tag.name.count > 0 {
-        tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, tag.name, theme.text_color);
+  determine_tag_type :: (tag: Tag) -> string {
+    if tag.payload.type == .List {
+      list_type := "";
+
+      if tag.payload.as_list.count > 0 {
+        list_type = tprint("%", tag.payload.as_list[0].payload.type);
       }
-      new_y -= xx font.default_line_spacing;
+
+      return tprint("%[%]", tag.payload.type, list_type);
+    } else {
+      return tprint("%", tag.payload.type);
     }
-    list_tag_width := 0.;
-    for tag.payload.as_list {
-      sub_tag_width, sub_new_y := render_tag(indented_x, new_y, it, indent + INDENT_STEP, false);
-      new_y = sub_new_y;
-      list_tag_width = max(list_tag_width, sub_tag_width);
-    }
-    tag_width += list_tag_width;
-  case .Compound;
-    if has_name {
-      if tag.name.count > 0 {
-        tag_width += xx Simp.draw_text(font, xx indented_x, xx new_y, tag.name, theme.text_color);
-      }
-      new_y -= xx font.default_line_spacing;
-    }
+  }
+
+  new_y -= xx font.default_line_spacing;
+  tag_name := tprint("\"%\": ", tag.name);
+  tag_width += xx Simp.draw_text(font, xx (x + tag_width), xx new_y, tag_name, TAG_NAME_COLOR);
+  tag_width += xx Simp.draw_text(font, xx (x + tag_width), xx new_y, determine_tag_type(tag), TAG_TYPE_COLOR);
+
+
+  TREE_LINE_COLOR      := theme.text_input_theme.frame_color;
+  TAG_TREE_LINE_WIDTH  := font.character_height / 12;
+
+  if tag.payload.type == .Compound {
     compound_tag_width := 0.;
+    child_max_y := 0.;
     for tag.payload.as_compound {
-      sub_tag_width, sub_new_y := render_tag(indented_x, new_y, it, indent + INDENT_STEP);
+      sub_tag_width, sub_new_y := render_tag(x, new_y, it, indent + INDENT_STEP);
+      child_max_y = new_y;
       new_y = sub_new_y;
       compound_tag_width = max(compound_tag_width, sub_tag_width);
     }
-    tag_width += compound_tag_width;
-  case .Int_Array;
-  case .Long_Array;
+    child_max_y -= font.default_line_spacing;
+    tag_width = max(tag_width, compound_tag_width);
+
+    if tag.payload.as_compound.count > 0 {
+      tag_tree_line_x := x + indent_width;
+      Simp.immediate_quad(tag_tree_line_x,
+                          y-cast(float, font.default_line_spacing),
+                          tag_tree_line_x+TAG_TREE_LINE_WIDTH,
+                          new_y,
+                          TREE_LINE_COLOR);
+      Simp.immediate_flush();
+    }
   }
 
   return tag_width, new_y;
@@ -393,7 +341,7 @@ render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
 
   y = new_y;
 
-  min_y := y + cast(float) font.default_line_spacing - pad;
+  min_y := y - pad;
   max_x := x + tag_width + scrollbar_width + pad;
 
   end_scrollable_region(vertical_region,   0,     min_y, *gui_nbt_files[index].vertical_scroll_value);
