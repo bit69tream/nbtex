@@ -287,17 +287,39 @@ render_tag :: (x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: flo
         list_type = tprint("%", tag.payload.as_list[0].payload.type);
       }
 
-      return tprint("%[%]", tag.payload.type, list_type);
+      return tprint(": %[%]", tag.payload.type, list_type);
     } else {
-      return tprint("%", tag.payload.type);
+      return tprint(": %", tag.payload.type);
     }
   }
 
   new_y -= xx font.default_line_spacing;
-  tag_name := tprint("\"%\": ", tag.name);
-  tag_width += xx Simp.draw_text(font, xx (x + tag_width), xx new_y, tag_name, TAG_NAME_COLOR);
-  tag_width += xx Simp.draw_text(font, xx (x + tag_width), xx new_y, determine_tag_type(tag), TAG_TYPE_COLOR);
 
+  tag_font := font;
+
+  mouse_x, mouse_y, succ := get_mouse_pointer_position(window, true);
+
+  tag_name := tprint("\"%\"", tag.name);
+  name_width := Simp.prepare_text(tag_font, tag_name);
+
+  selection_y_offset := font.character_height / 12;
+
+  left_x: s64 = xx (x + tag_width);
+  right_x: s64 = xx (x + tag_width + name_width);
+  top_y: s64 = xx (new_y + font_italic.character_height - font_italic.y_offset_for_centering / 2);
+  bottom_y: s64 = xx (new_y - font_italic.y_offset_for_centering / 2);
+
+  if succ && mouse_x > left_x && mouse_x < right_x && mouse_y > bottom_y && mouse_y < top_y {
+    tag_font = font_italic;
+    Simp.prepare_text(tag_font, tag_name);
+
+    Simp.immediate_quad(cast(float32) left_x, xx top_y, xx right_x, xx bottom_y, theme.text_input_theme.text_color_autocomplete);
+  }
+
+  Simp.draw_prepared_text(tag_font, xx (x + tag_width), xx new_y, TAG_NAME_COLOR);
+  tag_width += xx name_width;
+
+  tag_width += Simp.draw_text(font, xx (x + tag_width), xx new_y, determine_tag_type(tag), TAG_TYPE_COLOR);
 
   TREE_LINE_COLOR      := theme.text_input_theme.frame_color;
   TAG_TREE_LINE_WIDTH  := font.character_height / 12;
