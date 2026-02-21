@@ -11,7 +11,6 @@ main :: () {
     render_frame(dt);
 
     reset_temporary_storage();
-    sleep_milliseconds(16);
   }
 }
 
