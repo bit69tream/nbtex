@@ -257,9 +257,10 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
 
   gui_nbt_file.subwindow_id = next_subwindow_id();
   gui_nbt_file.info.title_text = gui_nbt_file.nbt.basename;
-  gui_nbt_file.info.rect = get_rect(xx (window_width / 64),
-                                    xx (window_height / 64),
-                                    xx (window_width * .5),
+
+  gui_nbt_file.info.rect = get_rect(xx ((gui_nbt_file.subwindow_id * 64) % window_width),
+                                    xx ((gui_nbt_file.subwindow_id * 64) % window_height),
+                                    xx (window_width  * .3),
                                     xx (window_height * .9));
   gui_nbt_file.info.draw = render_nbt_file;
 
