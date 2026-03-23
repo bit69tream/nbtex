@@ -70,7 +70,7 @@ update_and_process_events :: () {
         for event.files {
           nbt_file, success := read_nbt_file(it);
           if !success then {
-            add_warning_popup(it);
+            add_warning_popup(sprint("File '%' is not a valid NBT file (or doesn't exist).", path_filename(it)));
           } else {
             add_gui_nbt_file(nbt_file);
           }
@@ -226,10 +226,10 @@ init_fonts :: () {
   font_italic = Simp.get_font_at_size(font_italic_data, font_height);
 }
 
-add_warning_popup :: (path: string) {
+add_warning_popup :: (message: string) {
   popup := Info_Warning_Popup.{};
   popup.title_text = "WARNING";
-  popup.text = sprint("File '%' is not a valid NBT file (or doesn't exist).", path_filename(path));
+  popup.text = copy_string(message);
 
   text_width := Simp.prepare_text(font, popup.text);
   popup.rect = get_rect(xx window_width * .5 - xx text_width * .5,
