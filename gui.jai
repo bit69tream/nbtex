@@ -269,7 +269,7 @@ add_gui_nbt_file :: (nbt_file: NBT_File) {
 }
 
 INDENT_STEP :: 1;
-render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: Tag, indent: s64 = 0) -> (tag_width: float, new_y: float) {
+render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: *Tag, indent: s64 = 0) -> (tag_width: float, new_y: float) {
   INDENT_SPACE_WIDTH: float = xx font.em_width;
 
   indent_width := INDENT_SPACE_WIDTH * indent;
@@ -277,7 +277,7 @@ render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: Tag, indent: s64 =
 
   tag_width := indent_width;
 
-  determine_tag_type :: (tag: Tag) -> string {
+  determine_tag_type :: (tag: *Tag) -> string {
     if tag.payload.type == .List {
       list_type := "";
 
@@ -326,13 +326,15 @@ render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: Tag, indent: s64 =
   is_mouse_inside_this_subwindow := (subwindow_status != 0) && is_point_inside_rect(mouse_pos, my_weird_subwindow_rect);
 
   if is_mouse_inside_this_subwindow && succ && is_point_inside_rect(mouse_pos, tag_name_rect) {
-    tag_font = font_italic;
-    Simp.prepare_text(tag_font, tag_name);
-
-    if left_mouse_button_state != .NONE && left_mouse_button_state != .END {
+    if left_mouse_button_state != .NONE {
       TAG_NAME_COLOR   = theme.text_input_theme.text_color_autocomplete;
       HIGHTLIGHT_COLOR = theme.text_input_theme.text_color_over;
+    } else if left_mouse_button_state == .END {
+      // spawn editor
     }
+
+    tag_font = font_italic;
+    Simp.prepare_text(tag_font, tag_name);
 
     Simp.immediate_quad(cast(float32) left_x, xx top_y, xx right_x, xx bottom_y, HIGHTLIGHT_COLOR);
   }
@@ -348,7 +350,7 @@ render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: Tag, indent: s64 =
   if tag.payload.type == .Compound {
     compound_tag_width := 0.;
     child_max_y := 0.;
-    for tag.payload.as_compound {
+    for * tag.payload.as_compound {
       sub_tag_width, sub_new_y := render_tag(subwindow_rect, x, new_y, it, indent + INDENT_STEP);
       child_max_y = new_y;
       new_y = sub_new_y;
@@ -402,7 +404,7 @@ render_nbt_file :: (state: *Subwindow_State, rect: Rect, data: *void) {
   x := inside.x + pad      - gui_nbt_files[index].horizontal_scroll_value;
   y := inside.y + inside.h + gui_nbt_files[index].vertical_scroll_value;
 
-  tag_width, new_y := render_tag(state.info.rect, x, y, gui_nbt_files[index].nbt.content);
+  tag_width, new_y := render_tag(state.info.rect, x, y, *gui_nbt_files[index].nbt.content);
 
   y = new_y;
 
