@@ -363,8 +363,6 @@ render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_
   label(content_rect, text, *label_theme);
 }
 
-working_directory_set := false;
-
 init_fonts :: () {
   font_data:        []u8;
   font_italic_data: []u8;
@@ -373,16 +371,10 @@ init_fonts :: () {
     font_data   = FONT;
     font_italic = FONT_ITALIC;
   } else {
-    if !working_directory_set {
-      // So that we can load our font, set to path of running executable.
-      path := path_strip_filename(get_path_of_running_executable());
-      set_working_directory(path);
+    executable_path := path_strip_filename(get_path_of_running_executable());
 
-      working_directory_set = true;
-    }
-
-    font_data        = read_entire_file_bytes("./Inter-Light.ttf");
-    font_italic_data = read_entire_file_bytes("./Inter-LightItalic.ttf");
+    font_data        = read_entire_file_bytes(tprint("%/Inter-Light.ttf", executable_path));
+    font_italic_data = read_entire_file_bytes(tprint("%/Inter-LightItalic.ttf", executable_path));
   }
 
   background_font_height := window_height / 16;
