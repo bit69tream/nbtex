@@ -259,6 +259,69 @@ render_tag_editor_popup :: (state: *Subwindow_State, content_rect: Rect, user_da
   if action & .ENTERED  modify_string(repr, new_text);
 }
 
+tag_to_string :: (tag: *Tag) -> bool, string {
+  using tag.payload;
+
+  list_tag_to_string :: (tag: *Tag) -> bool, string {
+    builder: String_Builder;
+    init_string_builder(*builder);
+
+    append(*builder, "[");
+
+    for tag.payload.as_list {
+      value: string;
+
+      if it.type == {
+      case .End;        return false, "BUG: .End tag must never be here";
+      case .Compound;   return false, "BUG: not implemented and shouldn't reach here";
+      case .List;       return false, "BUG: not implemented and shouldn't reach here";
+      case .Byte;       value = tprint("%",     it.as_byte);
+      case .Short;      value = tprint("%",     it.as_short);
+      case .Int;        value = tprint("%",     it.as_int);
+      case .Long;       value = tprint("%",     it.as_long);
+      case .Float;      value = tprint("%",     it.as_float);
+      case .Double;     value = tprint("%",     it.as_double);
+      case .Byte_Array; value = tprint("%",     it.as_byte_array);
+      case .String;     value = tprint("\"%\"", it.as_string);
+      case .Int_Array;  value = tprint("%",     it.as_int_array);
+      case .Long_Array; value = tprint("%",     it.as_long_array);
+      case; assert(false);
+      }
+
+      append(*builder, value);
+
+      if it_index < (tag.payload.as_list.count - 1) {
+        append(*builder, ", ");
+      }
+    }
+
+    append(*builder, "]");
+
+    repr := builder_to_string(*builder);
+    free(builder.current_buffer);
+    return true, repr;
+  }
+
+  if #complete type == {
+  case .End;        return false, "BUG: .End tag must never be here";
+  case .Byte;       return true, sprint("%", as_byte);
+  case .Short;      return true, sprint("%", as_short);
+  case .Int;        return true, sprint("%", as_int);
+  case .Long;       return true, sprint("%", as_long);
+  case .Float;      return true, sprint("%", as_float);
+  case .Double;     return true, sprint("%", as_double);
+  case .Byte_Array; return true, sprint("%", as_byte_array);
+  case .String;     return true, copy_string(as_string);
+  case .Compound;   return false, "BUG: not implemented and shouldn't reach here";
+  case .Int_Array;  return true, sprint("%", as_int_array);
+  case .Long_Array; return true, sprint("%", as_long_array);
+  case .List; {
+    succ, repr := list_tag_to_string(tag);
+    return succ, repr;
+  }
+  }
+}
+
 add_tag_editor_popup :: (tag: *Tag) {
   if is_tag_too_complex(tag) then return;
 
@@ -278,7 +341,10 @@ add_tag_editor_popup :: (tag: *Tag) {
     draw = render_tag_editor_popup;
   }
 
-  editor.repr = sprint("%", tag.*); // TODO: custom printer
+  succ, repr_or_error := tag_to_string(tag);
+  assert(succ, repr_or_error);
+  editor.repr = repr_or_error;
+
   array_add(*tag_editor_popups, editor);
 
   {
