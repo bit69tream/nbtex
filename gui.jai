@@ -101,6 +101,7 @@ update_and_process_events :: () {
 
   if tag_editor_closed_index != -1 {
     free(tag_editor_popups[tag_editor_closed_index].repr);
+    // TODO: implement parser from strings to Tags so we can save stuff
     array_unordered_remove_by_index(*tag_editor_popups, tag_editor_closed_index);
   }
 }

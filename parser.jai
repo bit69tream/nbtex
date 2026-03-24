@@ -95,6 +95,8 @@ parse_tag :: (data: []u8) -> (next_data: []u8, value: Tag, success: bool) {
   return .{}, .{}, false;
 }
 
+// TODO: implement turning Tag into a byte array
+
 #scope_file
 
 Tag_Parser_Proc :: #type (data: []u8, is_named: bool = true) -> (next_data: []u8, value: Tag, success: bool);

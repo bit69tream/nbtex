@@ -6,6 +6,8 @@ NBT_File :: struct {
   content:  Tag;
 }
 
+// TODO: implement saving byte arrays as NBT files
+
 // this function takes care of error reporting
 read_nbt_file :: (path: string) -> NBT_File, bool {
   absolute_path := get_absolute_path(path);
