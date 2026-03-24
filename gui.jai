@@ -99,11 +99,60 @@ update_and_process_events :: () {
     }
   }
 
+  // NOTE: currently if the string representation is incorrent the
+  // editor window will be closed without asking if the used would
+  // like it to. This isn't the best behaviour but personally i doubt
+  // anyone except maybe me would use it
   if tag_editor_closed_index != -1 {
-    free(tag_editor_popups[tag_editor_closed_index].repr);
-    // TODO: implement parser from strings to Tags so we can save stuff
+    save_and_free_tag_editor(*tag_editor_popups[tag_editor_closed_index]);
     array_unordered_remove_by_index(*tag_editor_popups, tag_editor_closed_index);
   }
+}
+
+save_and_free_tag_editor :: (editor: *Tag_Editor_Popup) {
+  {
+    using editor.tag.payload;
+
+    string_to_tag_list :: (tag: *Tag, repr: string) -> []Tag, bool {
+      return .{}, false;
+    }
+
+    string_to_int_array :: (repr: string) -> []s32, bool {
+      return .{}, false;
+    }
+
+    string_to_long_array :: (repr: string) -> []s64, bool {
+      return .{}, false;
+    }
+
+    string_to_byte_array :: (repr: string) -> []s8, bool {
+      return .{}, false;
+    }
+
+    success := false;
+
+    if #complete type == {
+    case .Byte;       as_byte,       success, _ = string_to_int(editor.repr, T = s8);
+    case .Short;      as_short,      success, _ = string_to_int(editor.repr, T = s16);
+    case .Int;        as_int,        success, _ = string_to_int(editor.repr, T = s32);
+    case .Long;       as_long,       success, _ = string_to_int(editor.repr, T = s64);
+    case .Float;      as_float,      success, _ = string_to_float(editor.repr);
+    case .Double;     as_double,     success, _ = string_to_float64(editor.repr);
+    case .String;     as_string                 = editor.repr;
+    case .List;       as_list,       success    = string_to_tag_list(editor.tag, editor.repr);
+    case .Byte_Array; as_int_array,  success    = string_to_int_array(editor.repr);
+    case .Int_Array;  as_int_array,  success    = string_to_int_array(editor.repr);
+    case .Long_Array; as_long_array, success    = string_to_long_array(editor.repr);
+
+    case .End;      #through;
+    case .Compound; assert(false, "BUG: file an issue");
+    }
+
+    if !success {
+      add_warning_popup(tprint("Incorrect value for tag \"%\". Not saving.", editor.info.title_text));
+    }
+  }
+  defer free(editor.repr);
 }
 
 get_delta_time :: () -> float {
