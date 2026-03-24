@@ -421,8 +421,8 @@ init_fonts :: () {
   font_italic_data: []u8;
 
   #if BAKE_FONTS {
-    font_data   = FONT;
-    font_italic = FONT_ITALIC;
+    font_data        = FONT;
+    font_italic_data = FONT_ITALIC;
   } else {
     executable_path := path_strip_filename(get_path_of_running_executable());
 
