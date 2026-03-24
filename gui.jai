@@ -113,18 +113,22 @@ save_and_free_tag_editor :: (editor: *Tag_Editor_Popup) {
   {
     using editor.tag.payload;
 
+    // TODO: not implemented
     string_to_tag_list :: (tag: *Tag, repr: string) -> []Tag, bool {
       return .{}, false;
     }
 
+    // TODO: not implemented
     string_to_int_array :: (repr: string) -> []s32, bool {
       return .{}, false;
     }
 
+    // TODO: not implemented
     string_to_long_array :: (repr: string) -> []s64, bool {
       return .{}, false;
     }
 
+    // TODO: not implemented
     string_to_byte_array :: (repr: string) -> []s8, bool {
       return .{}, false;
     }
