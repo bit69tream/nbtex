@@ -78,17 +78,30 @@ update_and_process_events :: () {
     }
   }
 
-  closed_index: s64 = -1;
+  info_warning_closed_index: s64 = -1;
   for info_warning_popups {
     if !it.open {
-      closed_index = it_index;
+      info_warning_closed_index = it_index;
       break;
     }
   }
 
-  if closed_index != -1 {
-    free(info_warning_popups[closed_index].text.data);
-    array_unordered_remove_by_index(*info_warning_popups, closed_index);
+  if info_warning_closed_index != -1 {
+    free(info_warning_popups[info_warning_closed_index].text.data);
+    array_unordered_remove_by_index(*info_warning_popups, info_warning_closed_index);
+  }
+
+  tag_editor_closed_index: s64 = -1;
+  for tag_editor_popups {
+    if !it.open {
+      tag_editor_closed_index = it_index;
+      break;
+    }
+  }
+
+  if tag_editor_closed_index != -1 {
+    free(tag_editor_popups[tag_editor_closed_index].repr);
+    array_unordered_remove_by_index(*tag_editor_popups, tag_editor_closed_index);
   }
 }
 
@@ -129,6 +142,15 @@ render_frame :: (dt: float) {
   if gui_nbt_file_deletion_index != -1 {
     // @Todo save file dialog
     array_unordered_remove_by_index(*gui_nbt_files, gui_nbt_file_deletion_index);
+  }
+
+  {
+    popup_theme := theme.subwindow_theme;
+    for * tag_editor_popups {
+      if it.open {
+        add_subwindow(it, *popup_theme, it.id);
+      }
+    }
   }
 
   {
@@ -183,9 +205,87 @@ Info_Warning_Popup :: struct {
   text: string = "";
 }
 
+Tag_Editor_Popup :: struct {
+  id: s64 = 0;
+  #as using info: Subwindow_Info;
+  tag: *Tag;
+  repr: string;
+}
+
+tag_editor_popups: [..]Tag_Editor_Popup;
 info_warning_popups: [..]Info_Warning_Popup;
 
 global_subwindow_id_counter: s64 = 1;
+
+is_tag_too_complex :: (tag: *Tag) -> bool {
+  using tag.payload;
+  if type == .Compound {
+      add_warning_popup(sprint("Type too complex. Open an issue or submit PR if you want this feature."));
+      return true;
+  }
+
+  if type == .List {
+    if as_list.count == 0 {
+      add_warning_popup(sprint("Not supported because List has no type. Open an issue or submit PR if you want this feature."));
+      return true;
+    }
+
+    if as_list[0].payload.type == .List
+    || as_list[0].payload.type == .Compound
+    || as_list[0].payload.type == .Byte_Array
+    || as_list[0].payload.type == .Long_Array
+    || as_list[0].payload.type == .Int_Array {
+      add_warning_popup(sprint("Type too complex. Open an issue or submit PR if you want this feature."));
+      return true;
+    }
+  }
+  return false;
+}
+
+render_tag_editor_popup :: (state: *Subwindow_State, content_rect: Rect, user_data: *void) {
+  text_theme := theme.text_input_theme;
+  text_theme.font = font;
+  text_theme.rectangle_shape.roundedness = 0.;
+
+  repr := cast(*string, user_data);
+
+  // NOTE: taken from the GetRect/example.jai of JAI distribution
+  modify_string :: (ps: *string, new_value: string) {
+    free(ps.*);
+    ps.* = copy_string(new_value);
+  }
+
+  action, new_text := text_input(content_rect, repr.*, *text_theme);
+  if action & .ENTERED  modify_string(repr, new_text);
+}
+
+add_tag_editor_popup :: (tag: *Tag) {
+  if is_tag_too_complex(tag) then return;
+
+  editor := Tag_Editor_Popup.{
+    id = next_subwindow_id(),
+    tag = tag,
+  };
+
+  editor.info = Subwindow_Info.{};
+  {
+    using editor.info;
+    title_text = ifx tag.name != "" then tag.name else sprint("%", tag.payload.type);
+    rect = get_rect(xx window_width * .5,
+                    xx window_height * .5,
+                    xx window_width * .3,
+                    xx font.character_height * 2.5);
+    draw = render_tag_editor_popup;
+  }
+
+  editor.repr = sprint("%", tag.*); // TODO: custom printer
+  array_add(*tag_editor_popups, editor);
+
+  {
+    using,only(info, repr) tag_editor_popups[tag_editor_popups.count-1];
+    info.user_data = *repr;
+  }
+}
 
 render_warning_info_popup :: (state: *Subwindow_State, content_rect: Rect, user_data: *void) {
   text := cast(*string, user_data).*;
@@ -326,11 +426,10 @@ render_tag :: (subwindow_rect: Rect, x: float, y: float, tag: *Tag, indent: s64 
   is_mouse_inside_this_subwindow := (subwindow_status != 0) && is_point_inside_rect(mouse_pos, my_weird_subwindow_rect);
 
   if is_mouse_inside_this_subwindow && succ && is_point_inside_rect(mouse_pos, tag_name_rect) {
-    if left_mouse_button_state != .NONE {
+    if left_mouse_button_state == .END then add_tag_editor_popup(tag);
+    else if left_mouse_button_state != .NONE {
       TAG_NAME_COLOR   = theme.text_input_theme.text_color_autocomplete;
       HIGHTLIGHT_COLOR = theme.text_input_theme.text_color_over;
-    } else if left_mouse_button_state == .END {
-      // spawn editor
     }
 
     tag_font = font_italic;
